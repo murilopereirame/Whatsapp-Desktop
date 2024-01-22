@@ -1,6 +1,6 @@
 import { app } from 'electron'
 import WhatsAppClient from '../WhatsAppClient'
-import Configs from '../Configs'
+import Configs from './Configs'
 import MenuItem = Electron.MenuItem
 import MenuItemConstructorOptions = Electron.MenuItemConstructorOptions
 

@@ -1,6 +1,6 @@
 import { app, Menu } from 'electron'
 import { readFileSync, writeFileSync } from 'fs'
-import WhatsAppClient from './WhatsAppClient'
+import WhatsAppClient from '../WhatsAppClient'
 
 type SettingsValue = string | number | boolean
 

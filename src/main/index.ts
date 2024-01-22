@@ -1,6 +1,6 @@
 import { app } from 'electron'
 import { electronApp, optimizer } from '@electron-toolkit/utils'
-import Configs from './Configs'
+import Configs from './utils/Configs'
 import WhatsAppClient from './WhatsAppClient'
 
 const isSingleInstance = app.requestSingleInstanceLock()
@@ -31,12 +31,12 @@ app.on('second-instance', (_, argv) => {
       el.href = \"" +
         groupLinkOpenRequested +
         "\"; \
-      el.style.display = \"none\"; \
-      el.rel = 'noopener noreferrer'; \
-      el.id = 'newlink'; \
-      document.body.appendChild(el); \
-      setTimeout(function() { var el = document.getElementById('newlink'); el.click(); document.body.removeChild(el); }, 500); \
-      "
+  el.style.display = \"none\"; \
+  el.rel = 'noopener noreferrer'; \
+  el.id = 'newlink'; \
+  document.body.appendChild(el); \
+  setTimeout(function() { var el = document.getElementById('newlink'); el.click(); document.body.removeChild(el); }, 500); \
+  "
     )
   }
 })

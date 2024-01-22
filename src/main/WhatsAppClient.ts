@@ -1,12 +1,17 @@
-import { app, BrowserWindow, Menu, Tray } from 'electron'
+import { app, BrowserWindow, Menu, nativeImage, Tray } from 'electron'
 import { Menu as AppMenu } from './utils/Menu'
 import { unlinkSync } from 'fs'
-import Configs from './Configs'
+import Configs from './utils/Configs'
+import {
+  getAppIcon,
+  injectedJS,
+  MessageBadge,
+  svgToPng,
+  WarningBadge,
+  WhatsAppIcon
+} from './utils/Resources'
 
-// @ts-ignore Webstorm doesn't recognize asset
-import injectedJS from './js/injected.js?asset'
-
-enum IconStatus {
+export enum BadgeStatus {
   NORMAL,
   WITH_MESSAGES,
   WARNING
@@ -17,10 +22,11 @@ class WhatsAppClient {
   private tray: Tray | undefined = undefined
   private menu: Electron.Menu | null = null
   private trayContextMenu: Electron.Menu | null = null
-  private iconStatus: IconStatus = IconStatus.NORMAL
+  private badgeIcon: BadgeStatus = BadgeStatus.NORMAL
   private window: Electron.BrowserWindow
   private groupLinkOpenRequested: string | null = null
   private config = Configs.getInstance()
+  private messageCount = 0
 
   public static getInstance = (): WhatsAppClient => {
     if (!WhatsAppClient.instance) this.instance = new WhatsAppClient()
@@ -44,51 +50,47 @@ class WhatsAppClient {
     Menu.setApplicationMenu(this.menu)
   }
 
-  setNormalTray = (): void => {
-    this.iconStatus = IconStatus.NORMAL
-    this.updateTrayIcon()
-  }
-
   setWarningTray(): void {
-    this.iconStatus = IconStatus.WARNING
-    this.updateTrayIcon()
+    this.badgeIcon = BadgeStatus.WARNING
+    this.updateTrayBadge()
   }
 
   setNewMessageIcon(): void {
-    this.iconStatus = IconStatus.WITH_MESSAGES
+    this.badgeIcon = BadgeStatus.WITH_MESSAGES
+    this.updateTrayBadge()
     this.updateTrayIcon()
   }
 
-  clearNewMessageIcon(): void {
-    this.iconStatus = IconStatus.NORMAL
+  setNormalTray(): void {
+    this.badgeIcon = BadgeStatus.NORMAL
+    this.updateTrayBadge()
     this.updateTrayIcon()
   }
 
-  updateTrayIcon(): void {
-    if (this.tray != undefined && process.platform != 'darwin') {
-      if (this.iconStatus === IconStatus.WARNING) {
-        console.debug('Setting tray icon to warning')
-        this.tray.setImage(__dirname + '/assets/icon/iconWarning.png')
-      } else if (this.iconStatus === IconStatus.WITH_MESSAGES) {
-        console.debug('Setting tray icon to normal with messages')
-        this.tray.setImage(__dirname + '/assets/icon/iconWithMsg.png')
-      } else {
-        console.debug('Setting tray icon to normal')
-        this.tray.setImage(__dirname + '/assets/icon/icon.png')
-      }
+  updateTrayBadge = (): void => {
+    let icon = null
+    let message = ''
+    if (this.badgeIcon === BadgeStatus.WARNING) {
+      icon = nativeImage.createFromBuffer(svgToPng(WarningBadge))
+      message = 'Connection issues'
+    } else if (this.badgeIcon === BadgeStatus.WITH_MESSAGES) {
+      icon = nativeImage.createFromBuffer(svgToPng(MessageBadge))
+      message = `${this.messageCount} new messages`
     }
+
+    this.window.setOverlayIcon(icon, message)
+  }
+
+  updateTrayIcon = (): void => {
+    const icon = nativeImage.createFromBuffer(svgToPng(getAppIcon(this.badgeIcon)))
+    this.tray.setImage(icon)
   }
 
   createTray(): void {
     console.debug('Creating tray icon')
-    let trayImg = __dirname + '/assets/img/trayTemplate.png'
 
     // Darwin requires black/white/transparent icon, other platforms does not
-    if (process.platform != 'darwin') {
-      trayImg = __dirname + '/assets/icon/icon.png'
-    }
-
-    this.tray = new Tray(trayImg)
+    this.tray = new Tray(nativeImage.createFromBuffer(svgToPng(getAppIcon())))
 
     // Setting up a trayicon context menu
     this.trayContextMenu = Menu.buildFromTemplate(AppMenu.getTrayMenu())
@@ -137,7 +139,7 @@ class WhatsAppClient {
       title: 'WhatsApp',
       show: false,
       autoHideMenuBar: this.config.getBoolean('autoHideMenuBar'),
-      icon: __dirname + '/assets/icon/icon.png',
+      icon: nativeImage.createFromBuffer(svgToPng(WhatsAppIcon)),
       webPreferences: {
         nodeIntegration: false,
         preload: injectedJS
@@ -189,22 +191,19 @@ setTimeout(function() { var el = document.getElementById('newlink'); el.click();
     })
 
     this.window.on('page-title-updated', (event, title) => {
-      const count = title.match(/\((\d+)\)/)?.at(1) ?? '0'
+      const count = parseInt(title.match(/\((\d+)\)/)?.at(1) ?? '0')
 
-      if (parseInt(count) > 0) {
-        if (process.platform === 'darwin') return app.dock.setBadge(count)
+      if (count > 0) {
+        if (process.platform === 'darwin') return app.dock.setBadge(count.toString())
 
         if (!this.window.isFocused() && !this.config.getBoolean('quietMode')) {
           this.window.flashFrame(true)
         }
-        const badge = Electron.nativeImage.createFromPath(
-          app.getAppPath() + '/assets/badges/badge-0.png'
-        )
-        this.window.setOverlayIcon(badge, 'new messages')
+
+        this.messageCount = count
         this.setNewMessageIcon()
       } else {
-        this.window.setOverlayIcon(null, 'no new messages')
-        this.clearNewMessageIcon()
+        this.setNormalTray()
       }
       console.debug('Badge updated: ' + count)
     })
