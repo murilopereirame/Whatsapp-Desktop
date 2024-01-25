@@ -1,16 +1,17 @@
-import { contextBridge } from 'electron'
+import { contextBridge, ipcRenderer } from 'electron'
 import { electronAPI } from '@electron-toolkit/preload'
-
-// Custom APIs for renderer
-const api = {}
+import { SettingsProperties } from '../common'
 
 // Use `contextBridge` APIs to expose Electron APIs to
 // renderer only if context isolation is enabled, otherwise
 // just add to the DOM global.
 if (process.contextIsolated) {
   try {
-    contextBridge.exposeInMainWorld('electron', electronAPI)
-    contextBridge.exposeInMainWorld('api', api)
+    contextBridge.exposeInMainWorld('api', {
+      updateSettings: (settings: SettingsProperties) =>
+        ipcRenderer.send('settings:update', settings),
+      getSettings: () => ipcRenderer.invoke('settings:get')
+    })
   } catch (error) {
     console.error(error)
   }

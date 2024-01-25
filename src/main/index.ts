@@ -1,6 +1,6 @@
 import { app } from 'electron'
 import { electronApp, optimizer } from '@electron-toolkit/utils'
-import Configs from './utils/Configs'
+import Settings from './utils/Settings'
 import WhatsAppClient from './WhatsAppClient'
 
 const isSingleInstance = app.requestSingleInstanceLock()
@@ -31,12 +31,12 @@ app.on('second-instance', (_, argv) => {
       el.href = \"" +
         groupLinkOpenRequested +
         "\"; \
-  el.style.display = \"none\"; \
-  el.rel = 'noopener noreferrer'; \
-  el.id = 'newlink'; \
-  document.body.appendChild(el); \
-  setTimeout(function() { var el = document.getElementById('newlink'); el.click(); document.body.removeChild(el); }, 500); \
-  "
+el.style.display = \"none\"; \
+el.rel = 'noopener noreferrer'; \
+el.id = 'newlink'; \
+document.body.appendChild(el); \
+setTimeout(function() { var el = document.getElementById('newlink'); el.click(); document.body.removeChild(el); }, 500); \
+"
     )
   }
 })
@@ -45,14 +45,13 @@ if (!isSingleInstance) {
   app.quit()
 }
 
-app.userAgentFallback = Configs.getInstance().getString('userAgent')
+app.userAgentFallback = Settings.getInstance().getString('userAgent')
 
 app.whenReady().then(() => {
   electronApp.setAppUserModelId('com.electron')
-
   WhatsAppClient.getInstance().init()
 
-  if (Configs.getInstance().getBoolean('globalShortcut')) {
+  if (Settings.getInstance().getBoolean('globalShortcut')) {
     const window = WhatsAppClient.getInstance().getWindow()
     Electron.globalShortcut.register('CmdOrCtrl + Alt + W', function () {
       if (window.isFocused()) window.hide()
@@ -73,7 +72,7 @@ app.on('window-all-closed', () => {
 
 // unregistering the globalShorcut on quit of application
 app.on('will-quit', function () {
-  if (Configs.getInstance().getBoolean('globalShortcut')) {
+  if (Settings.getInstance().getBoolean('globalShortcut')) {
     Electron.globalShortcut.unregisterAll()
   }
 })

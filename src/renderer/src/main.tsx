@@ -1,5 +1,5 @@
+import '@picocss/pico/css/pico.min.css'
 import { render } from 'solid-js/web'
-import './assets/index.css'
-import App from './App'
+import Settings from './pages/Settings'
 
-render(() => <App />, document.getElementById('root') as HTMLElement)
+render(() => <Settings />, document.getElementById('root') as HTMLElement)

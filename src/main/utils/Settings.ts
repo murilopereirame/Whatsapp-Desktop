@@ -1,12 +1,57 @@
-import { app, Menu } from 'electron'
+import { app, BrowserWindow, ipcMain, Menu, nativeImage } from 'electron'
 import { readFileSync, writeFileSync } from 'fs'
 import WhatsAppClient from '../WhatsAppClient'
+import { SettingsProperties, SettingsValue } from '../../common'
+import * as path from 'path'
+import { svgToPng, WhatsAppIcon } from './Resources'
 
-type SettingsValue = string | number | boolean
+export const openSettings = (): void => {
+  const settingsWindow = new BrowserWindow({
+    parent: WhatsAppClient.getInstance().getWindow(),
+    modal: true,
+    maxWidth: 400,
+    width: 400,
+    resizable: false,
+    webPreferences: {
+      preload: path.join(__dirname, '../preload/index.js'),
+      sandbox: false
+    },
+    title: 'Settings',
+    icon: nativeImage.createFromBuffer(svgToPng(WhatsAppIcon))
+  })
 
-class Configs {
-  private static instance: Configs
-  private settings = {
+  settingsWindow.setMenuBarVisibility(false)
+
+  if (process.env.ELECTRON_RENDERER_URL) {
+    settingsWindow.loadURL(process.env.ELECTRON_RENDERER_URL)
+  } else {
+    settingsWindow.loadURL(path.join(__dirname, '../dist/html/index.html'))
+  }
+
+  ipcMain.on('settings:update', (_, settings: SettingsProperties) => {
+    const settingsInstance = Settings.getInstance()
+
+    Object.entries(settings).map((setting: [string, SettingsValue]) =>
+      settingsInstance.set(setting[0], setting[1])
+    )
+
+    settingsInstance.storeSettings()
+    settingsInstance.applyConfiguration()
+  })
+
+  ipcMain.handle('settings:get', (): SettingsProperties => {
+    return Settings.getInstance().getAll()
+  })
+
+  settingsWindow.on('close', () => {
+    ipcMain.removeHandler('settings:get')
+    ipcMain.removeHandler('settings:update')
+  })
+}
+
+class Settings {
+  private static instance: Settings
+  private settings: SettingsProperties = {
     userAgent:
       'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
     width: 1000,
@@ -37,20 +82,22 @@ class Configs {
 
   private settingsFile: string = `${app.getPath('userData')}/settings.json`
 
-  static getInstance = (): Configs => {
+  static getInstance = (): Settings => {
     if (!this.instance) {
-      this.instance = new Configs()
+      this.instance = new Settings()
       this.instance.loadConfigs()
     }
 
     return this.instance
   }
 
+  getAll = (): SettingsProperties => this.settings
+
   getString = (key: string): string => {
     return this.get(key).toString()
   }
 
-  public getNumber = (key: string): number => {
+  getNumber = (key: string): number => {
     return Number(this.get(key))
   }
 
@@ -240,4 +287,4 @@ class Configs {
   }
 }
 
-export default Configs
+export default Settings

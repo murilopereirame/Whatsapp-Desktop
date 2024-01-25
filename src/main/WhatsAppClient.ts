@@ -1,7 +1,7 @@
 import { app, BrowserWindow, Menu, nativeImage, Tray } from 'electron'
 import { Menu as AppMenu } from './utils/Menu'
 import { unlinkSync } from 'fs'
-import Configs from './utils/Configs'
+import Settings from './utils/Settings'
 import {
   getAppIcon,
   injectedJS,
@@ -25,7 +25,7 @@ class WhatsAppClient {
   private badgeIcon: BadgeStatus = BadgeStatus.NORMAL
   private window: Electron.BrowserWindow
   private groupLinkOpenRequested: string | null = null
-  private config = Configs.getInstance()
+  private config = Settings.getInstance()
   private messageCount = 0
 
   public static getInstance = (): WhatsAppClient => {
@@ -245,6 +245,10 @@ setTimeout(function() { var el = document.getElementById('newlink'); el.click();
     this.window.setAlwaysOnTop(true)
     this.window.focus()
     this.window.setAlwaysOnTop(false)
+  }
+
+  releaseWindowLock = (): void => {
+    this.window.removeAllListeners('close')
   }
 
   private updatePosition = (): void => {

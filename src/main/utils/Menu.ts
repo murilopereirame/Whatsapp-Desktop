@@ -1,6 +1,7 @@
 import { app } from 'electron'
 import WhatsAppClient from '../WhatsAppClient'
-import Configs from './Configs'
+import whatsAppClient from '../WhatsAppClient'
+import Settings, { openSettings } from './Settings'
 import MenuItem = Electron.MenuItem
 import MenuItemConstructorOptions = Electron.MenuItemConstructorOptions
 
@@ -50,8 +51,7 @@ export class Menu {
             label: 'Settings',
             accelerator: 'CmdOrCtrl+,',
             click: (): void => {
-              //fixme implement settings
-              console.warn('Not Implemented')
+              openSettings()
             }
           }
         ]
@@ -84,16 +84,16 @@ export class Menu {
             accelerator: 'CmdOrCtrl+Shift+Alt+D',
             type: 'checkbox',
             checked: ((): boolean => {
-              return Configs.getInstance().getBoolean('darkMode')
+              return Settings.getInstance().getBoolean('darkMode')
             })(),
             click: (item, focusedWindow): void => {
-              Configs.getInstance().set(
+              Settings.getInstance().set(
                 'darkMode',
-                Configs.getInstance().getBoolean('darkMode') != true
+                Settings.getInstance().getBoolean('darkMode') != true
               )
-              item.checked = Configs.getInstance().getBoolean('darkMode')
-              Configs.getInstance().storeSettings()
-              Configs.getInstance().applyConfiguration()
+              item.checked = Settings.getInstance().getBoolean('darkMode')
+              Settings.getInstance().storeSettings()
+              Settings.getInstance().applyConfiguration()
               if (focusedWindow) focusedWindow.reload()
             }
           },
@@ -102,12 +102,15 @@ export class Menu {
             accelerator: 'CmdOrCtrl+Shift+Alt+Q',
             type: 'checkbox',
             checked: ((): boolean => {
-              return Configs.getInstance().getBoolean('quietMode')
+              return Settings.getInstance().getBoolean('quietMode')
             })(),
             click: (item): void => {
-              Configs.getInstance().set('quietMode', !Configs.getInstance().getBoolean('quietMode'))
-              item.checked = Configs.getInstance().getBoolean('quietMode')
-              Configs.getInstance().storeSettings()
+              Settings.getInstance().set(
+                'quietMode',
+                !Settings.getInstance().getBoolean('quietMode')
+              )
+              item.checked = Settings.getInstance().getBoolean('quietMode')
+              Settings.getInstance().storeSettings()
             }
           },
           { type: 'separator' },
@@ -201,6 +204,7 @@ export class Menu {
               label: 'Quit',
               accelerator: 'Command+Q',
               click: (): void => {
+                whatsAppClient.getInstance().releaseWindowLock()
                 app.quit()
               }
             }
@@ -224,7 +228,8 @@ export class Menu {
               label: 'Quit',
               accelerator: 'Ctrl+Q',
               click: (): void => {
-                require('electron').app.quit()
+                whatsAppClient.getInstance().releaseWindowLock()
+                app.quit()
               }
             }
           ]
@@ -257,6 +262,7 @@ export class Menu {
       {
         label: 'Quit',
         click: (): void => {
+          whatsAppClient.getInstance().releaseWindowLock()
           app.quit()
         }
       }
