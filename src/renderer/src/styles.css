@@ -1,3 +1,7 @@
 h2, h5 {
-  margin-bottom: .6875rem;
+    margin-bottom: .6875rem;
+}
+
+.bold {
+    font-weight: bold;
 }

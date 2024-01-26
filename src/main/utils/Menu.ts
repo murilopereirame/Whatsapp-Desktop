@@ -1,7 +1,8 @@
-import { app } from 'electron'
+import { app, BrowserWindow, nativeImage, shell } from 'electron'
 import WhatsAppClient from '../WhatsAppClient'
-import whatsAppClient from '../WhatsAppClient'
 import Settings, { openSettings } from './Settings'
+import { svgToPng, WhatsAppIcon } from './Resources'
+import * as path from 'path'
 import MenuItem = Electron.MenuItem
 import MenuItemConstructorOptions = Electron.MenuItemConstructorOptions
 
@@ -80,24 +81,6 @@ export class Menu {
             }
           },
           {
-            label: 'Dark mode',
-            accelerator: 'CmdOrCtrl+Shift+Alt+D',
-            type: 'checkbox',
-            checked: ((): boolean => {
-              return Settings.getInstance().getBoolean('darkMode')
-            })(),
-            click: (item, focusedWindow): void => {
-              Settings.getInstance().set(
-                'darkMode',
-                Settings.getInstance().getBoolean('darkMode') != true
-              )
-              item.checked = Settings.getInstance().getBoolean('darkMode')
-              Settings.getInstance().storeSettings()
-              Settings.getInstance().applyConfiguration()
-              if (focusedWindow) focusedWindow.reload()
-            }
-          },
-          {
             label: 'Quiet mode',
             accelerator: 'CmdOrCtrl+Shift+Alt+Q',
             type: 'checkbox',
@@ -142,31 +125,6 @@ export class Menu {
           },
           ...this.getDarwinWindowSubmenu()
         ]
-      },
-      {
-        label: '&Audio',
-        submenu: [
-          {
-            label: 'Increase Audio Rate by 20%',
-            accelerator: 'CmdOrCtrl+=',
-            click: (_, focusedWindow): void => {
-              focusedWindow &&
-                focusedWindow.webContents.executeJavaScript(
-                  'window.audioRate = (window.audioRate || 1) + 0.2'
-                )
-            }
-          },
-          {
-            label: 'Decrease Audio Rate by 20%',
-            accelerator: 'CmdOrCtrl+-',
-            click: (_, focusedWindow): void => {
-              focusedWindow &&
-                focusedWindow.webContents.executeJavaScript(
-                  'window.audioRate = (window.audioRate || 1) - 0.2'
-                )
-            }
-          }
-        ]
       }
     ]
     if (process.platform == 'darwin') {
@@ -204,7 +162,7 @@ export class Menu {
               label: 'Quit',
               accelerator: 'Command+Q',
               click: (): void => {
-                whatsAppClient.getInstance().releaseWindowLock()
+                WhatsAppClient.getInstance().releaseWindowLock()
                 app.quit()
               }
             }
@@ -212,7 +170,7 @@ export class Menu {
         },
         ...baseTemplate
       ]
-    } else if (process.platform == 'linux' || process.platform == 'win32') {
+    } else {
       return [
         {
           label: '&File',
@@ -220,15 +178,14 @@ export class Menu {
             {
               label: 'About',
               click: (): void => {
-                //fixme implement about
-                console.warn('Not implemented')
+                this.openAbout()
               }
             },
             {
               label: 'Quit',
               accelerator: 'Ctrl+Q',
               click: (): void => {
-                whatsAppClient.getInstance().releaseWindowLock()
+                WhatsAppClient.getInstance().releaseWindowLock()
                 app.quit()
               }
             }
@@ -243,8 +200,7 @@ export class Menu {
     return [
       {
         label: 'Show',
-        // fixme load config
-        visible: true, //config.get('startminimized'), // Hide this option on start
+        visible: Settings.getInstance().getBoolean('startMinimized'), // Hide this option on start
         click: (): void => {
           WhatsAppClient.getInstance().showWindow()
         }
@@ -252,7 +208,7 @@ export class Menu {
 
       {
         label: 'Hide',
-        visible: true, //!config.get('startminimized'), // Show this option on start
+        visible: !Settings.getInstance().getBoolean('startMinimized'), // Show this option on start
         click: (): void => {
           WhatsAppClient.getInstance().getWindow().hide()
         }
@@ -262,11 +218,42 @@ export class Menu {
       {
         label: 'Quit',
         click: (): void => {
-          whatsAppClient.getInstance().releaseWindowLock()
+          WhatsAppClient.getInstance().releaseWindowLock()
           app.quit()
         }
       }
     ]
+  }
+
+  static openAbout(): void {
+    const aboutWindow = new BrowserWindow({
+      parent: WhatsAppClient.getInstance().getWindow(),
+      modal: true,
+      maxWidth: 500,
+      width: 500,
+      maxHeight: 320,
+      height: 320,
+      resizable: false,
+      webPreferences: {
+        preload: path.join(__dirname, '../preload/index.js'),
+        sandbox: false
+      },
+      title: 'About',
+      icon: nativeImage.createFromBuffer(svgToPng(WhatsAppIcon))
+    })
+
+    aboutWindow.setMenuBarVisibility(false)
+
+    if (process.env.ELECTRON_RENDERER_URL) {
+      aboutWindow.loadURL(`${process.env.ELECTRON_RENDERER_URL}?path=about`)
+    } else {
+      aboutWindow.loadURL(`${path.join(__dirname, '../dist/html/index.html')}?path=about`)
+    }
+
+    aboutWindow.webContents.setWindowOpenHandler(({ url }) => {
+      shell.openExternal(url)
+      return { action: 'deny' }
+    })
   }
 
   private static getDarwinWindowSubmenu = (): Array<MenuItemConstructorOptions> => {
