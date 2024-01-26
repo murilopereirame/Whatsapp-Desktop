@@ -2,7 +2,6 @@ interface SettingsProperties {
   userAgent: string
   width: number
   height: number
-  thumbSize: number
   posY: number
   posX: number
   autoHideMenuBar: boolean
@@ -16,9 +15,6 @@ interface SettingsProperties {
   fontSize: string
   backgroundImage: string
   backgroundOpacity: number
-  hideAvatars: boolean
-  hidePreviews: boolean
-  darkMode: boolean
   blurImages: boolean
   customCSS: string
   trayIcon: boolean

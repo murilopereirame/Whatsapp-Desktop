@@ -23,9 +23,9 @@ export const openSettings = (): void => {
   settingsWindow.setMenuBarVisibility(false)
 
   if (process.env.ELECTRON_RENDERER_URL) {
-    settingsWindow.loadURL(process.env.ELECTRON_RENDERER_URL)
+    settingsWindow.loadURL(`${process.env.ELECTRON_RENDERER_URL}/path=settings`)
   } else {
-    settingsWindow.loadURL(path.join(__dirname, '../dist/html/index.html'))
+    settingsWindow.loadURL(`${path.join(__dirname, '../dist/html/index.html')}?path=settings`)
   }
 
   ipcMain.on('settings:update', (_, settings: SettingsProperties) => {
@@ -56,7 +56,6 @@ class Settings {
       'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
     width: 1000,
     height: 720,
-    thumbSize: 0,
     posY: 0,
     posX: 0,
     autoHideMenuBar: false,
@@ -70,9 +69,6 @@ class Settings {
     fontSize: 'normal',
     backgroundImage: '',
     backgroundOpacity: 100,
-    hideAvatars: false,
-    hidePreviews: false,
-    darkMode: false,
     blurImages: false,
     customCSS: '',
     trayIcon: true,
@@ -125,83 +121,57 @@ class Settings {
     if (this.get('maximized') && this.get('startMinimized') != true) {
       whatsApp.getWindow().maximize()
     }
+
     whatsApp.getWindow().webContents.on('dom-ready', () => {
+      console.log('Applying custom CSS')
       const fontSize = this.getString('fontSize')
-      const fontCSS = fontSize != 'normal' ? 'font-size:' + fontSize + ' !important;' : ''
-      whatsApp
-        .getWindow()
-        .webContents.insertCSS(
-          `* { text-rendering: optimizeSpeed !important; -webkit-font-smoothing: subpixel-antialiased !important; ${fontCSS}'}`
-        )
+      const fontCSS = fontSize != 'normal' ? `font-size: ${fontSize}px !important;` : ''
+      const cssContent: string[] = []
 
-      const imagePath = this.getString('backgroundImage')
-      if (imagePath !== '') {
-        const img = readFileSync(imagePath).toString('base64')
-        const opacity = this.getNumber('backgroundOpacity') / 100.0
-
-        const mime = require('mime')
-        const mimeType = mime.getType(imagePath)
-
-        whatsApp
-          .getWindow()
-          .webContents.insertCSS(
-            `.pane-chat-tile { background-image: url(data:"${mimeType}";base64,"+${img}+") !important; background-size: cover !important; opacity: "${opacity}" !important; max-width: 100% !important; }`
-          )
-      }
-
-      const noAvatar = '.chat-avatar img { display: none !important; }'
-      const noPreview = '.chat-secondary .chat-status{z-index: -999;}'
-
-      const thumbSize =
-        `.image-thumb { width: ${this.get('thumbSize')}px  !important;` +
-        `height: ${this.get('thumbSize')}px !important;}` +
-        '.image-thumb img.image-thumb-body { width: auto !important;' +
-        `height: ${this.get('thumbSize')}px !important;}`
-
-      const darkMode =
-        '#pane-side, #pane-side div div div div div div, #side header, #side header div div \
-                #side div, #side div div, #side div div button, #side div div label, #side div div input, \
-                #main footer, #main footer div, #main footer div div, #main header, #main header div div span, \
-                #main header div div div span \
-                { background-color: #2E2C2B !important; color: white; }\n \
-                .message-in { background-color: #75706E !important; }\n \
-                .message, .media-caption { color: #F0F0F0; }\n \
-                .message-in .tail-container, .message-in.tail-override-right .tail-container, \
-                .message-out.tail-override-right .tail-container, .message-in.tail-override-left \
-                .tail-container { background-image: none !important; }\n \
-                .block-compose, .block-compose .input-container { background-color: #2E2C2B !important; }\n \
-                .pane-chat-header, .chat.active, .chat, .chatlist-panel-search, .pane-header.pane-list-header, \
-                .input-chatlist-search, .chatlist-panel-body, .chatlist-panel-search div label input, \
-                .chatlist-panel-search div label, #app > div > div > div._3q4NP._1Iexl > div, .message > div > span \
-                 { background-color: #2E2C2B !important;, background-image: none !important; }\n \
-                .chat-title, .header-title, .chat-body div span { color: white; }'
+      cssContent.push(
+        `* { text-rendering: optimizeSpeed !important; -webkit-font-smoothing: subpixel-antialiased !important; ${fontCSS}}`
+      )
 
       const blurImages =
         'div.message-in img, div.message-out img { filter: contrast(25%) blur(8px) grayscale(75%); } \n \
                 div.message-in:hover img, div.message-out:hover img { filter: none; }'
 
-      if (this.getBoolean('hideAvatars')) {
-        whatsApp.getWindow().webContents.insertCSS(noAvatar)
-      }
-      if (this.getBoolean('hidePreviews')) {
-        whatsApp.getWindow().webContents.insertCSS(noPreview)
-      }
-      if (this.getBoolean('darkMode')) {
-        whatsApp.getWindow().webContents.insertCSS(darkMode)
-      }
       if (this.getBoolean('blurImages')) {
-        whatsApp.getWindow().webContents.insertCSS(blurImages)
+        cssContent.push(blurImages)
       }
 
-      if (this.getNumber('thumbSize') > 0) {
-        whatsApp.getWindow().webContents.insertCSS(thumbSize)
-      }
       if (this.get('customCSS') !== '') {
         try {
-          whatsApp.getWindow().webContents.insertCSS(this.getString('customCSS'))
+          cssContent.push(this.getString('customCSS'))
         } catch (e) {
           console.error('CSS error: ' + e)
         }
+      }
+
+      const imagePath = this.getString('backgroundImage')
+      if (imagePath !== '') {
+        const img = readFileSync(imagePath)
+        const img64 = Buffer.from(img).toString('base64')
+        const opacity = this.getNumber('backgroundOpacity') / 100.0
+
+        ;(async (): Promise<void> => {
+          const { default: mime } = await import('mime')
+          const mimeType = mime.getType(imagePath)
+
+          cssContent.push(
+            '.pane-chat-tile { background: url("data:' +
+              mimeType +
+              ';base64,' +
+              img64 +
+              '") !important; background-size: cover !important; opacity: ' +
+              opacity +
+              ' !important; max-width: 100% !important; }'
+          )
+
+          whatsApp.getWindow().webContents.send('style:inject-css', cssContent.join(' '))
+        })()
+      } else {
+        whatsApp.getWindow().webContents.send('style:inject-css', cssContent.join(' '))
       }
     })
 

@@ -5,6 +5,9 @@ import WhatsAppClient from './WhatsAppClient'
 
 const isSingleInstance = app.requestSingleInstanceLock()
 
+app.setName('Whatstron')
+app.setAppUserModelId('dev.murilopereira.whatstron')
+
 app.on('second-instance', (_, argv) => {
   const window = WhatsAppClient.getInstance().getWindow()
 
@@ -15,7 +18,7 @@ app.on('second-instance', (_, argv) => {
     window.show()
   }
 
-  let groupLinkOpenRequested = null
+  let groupLinkOpenRequested: string | null = null
   if (argv.length > 1) {
     for (let i = 0; i < argv.length; i++) {
       if (argv[i].indexOf('https://chat.whatsapp.com') >= 0) {
@@ -48,7 +51,8 @@ if (!isSingleInstance) {
 app.userAgentFallback = Settings.getInstance().getString('userAgent')
 
 app.whenReady().then(() => {
-  electronApp.setAppUserModelId('com.electron')
+  electronApp.setAppUserModelId('dev.murilopereira.whatstron')
+
   WhatsAppClient.getInstance().init()
 
   if (Settings.getInstance().getBoolean('globalShortcut')) {

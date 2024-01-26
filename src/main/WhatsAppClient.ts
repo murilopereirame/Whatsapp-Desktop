@@ -1,4 +1,4 @@
-import { app, BrowserWindow, Menu, nativeImage, Tray } from 'electron'
+import { app, BrowserWindow, ipcMain, Menu, nativeImage, NativeImage, shell, Tray } from 'electron'
 import { Menu as AppMenu } from './utils/Menu'
 import { unlinkSync } from 'fs'
 import Settings from './utils/Settings'
@@ -23,7 +23,7 @@ class WhatsAppClient {
   private menu: Electron.Menu | null = null
   private trayContextMenu: Electron.Menu | null = null
   private badgeIcon: BadgeStatus = BadgeStatus.NORMAL
-  private window: Electron.BrowserWindow
+  private window: Electron.BrowserWindow | null = null
   private groupLinkOpenRequested: string | null = null
   private config = Settings.getInstance()
   private messageCount = 0
@@ -42,7 +42,7 @@ class WhatsAppClient {
     this.config.applyConfiguration()
   }
 
-  getWindow = (): Electron.BrowserWindow => this.window
+  getWindow = (): Electron.BrowserWindow => this.window ?? this.createWindow()
 
   createMenu = (): void => {
     console.debug('Creating menu')
@@ -68,7 +68,7 @@ class WhatsAppClient {
   }
 
   updateTrayBadge = (): void => {
-    let icon = null
+    let icon: null | NativeImage = null
     let message = ''
     if (this.badgeIcon === BadgeStatus.WARNING) {
       icon = nativeImage.createFromBuffer(svgToPng(WarningBadge))
@@ -78,12 +78,12 @@ class WhatsAppClient {
       message = `${this.messageCount} new messages`
     }
 
-    this.window.setOverlayIcon(icon, message)
+    this.window?.setOverlayIcon(icon, message)
   }
 
   updateTrayIcon = (): void => {
     const icon = nativeImage.createFromBuffer(svgToPng(getAppIcon(this.badgeIcon)))
-    this.tray.setImage(icon)
+    this.tray?.setImage(icon)
   }
 
   createTray(): void {
@@ -152,7 +152,7 @@ class WhatsAppClient {
 
     this.window.webContents.on('did-finish-load', () => {
       if (this.groupLinkOpenRequested != null) {
-        this.window.webContents.executeJavaScript(
+        this.window?.webContents.executeJavaScript(
           "var el = document.createElement('a');\
           el.href = \"" +
             this.groupLinkOpenRequested +
@@ -190,14 +190,14 @@ setTimeout(function() { var el = document.getElementById('newlink'); el.click();
       this.updatePosition()
     })
 
-    this.window.on('page-title-updated', (event, title) => {
+    this.window.on('page-title-updated', (_, title) => {
       const count = parseInt(title.match(/\((\d+)\)/)?.at(1) ?? '0')
 
       if (count > 0) {
         if (process.platform === 'darwin') return app.dock.setBadge(count.toString())
 
-        if (!this.window.isFocused() && !this.config.getBoolean('quietMode')) {
-          this.window.flashFrame(true)
+        if (!this.window?.isFocused() && !this.config.getBoolean('quietMode')) {
+          this.window?.flashFrame(true)
         }
 
         this.messageCount = count
@@ -213,13 +213,13 @@ setTimeout(function() { var el = document.getElementById('newlink'); el.click();
         app.quit()
       } else {
         e.preventDefault()
-        this.window.hide()
+        this.window?.hide()
       }
     })
 
     // Toggle contextmenu content when window is shown
     this.window.on('show', () => {
-      if (this.tray != undefined) {
+      if (this.tray != undefined && this.trayContextMenu != undefined) {
         this.trayContextMenu.items[0].visible = false
         this.trayContextMenu.items[1].visible = true
 
@@ -229,7 +229,7 @@ setTimeout(function() { var el = document.getElementById('newlink'); el.click();
 
     // Toggle contextmenu content when window is hidden
     this.window.on('hide', () => {
-      if (this.tray != undefined) {
+      if (this.tray != undefined && this.trayContextMenu != undefined) {
         this.trayContextMenu.items[1].visible = false
         this.trayContextMenu.items[0].visible = true
 
@@ -237,10 +237,21 @@ setTimeout(function() { var el = document.getElementById('newlink'); el.click();
       }
     })
 
+    ipcMain.on('notificationClick', () => {
+      this.showWindow()
+    })
+
+    this.window.webContents.setWindowOpenHandler(({ url }) => {
+      shell.openExternal(url)
+      return { action: 'deny' }
+    })
+
     return this.window
   }
 
   public showWindow = (): void => {
+    if (!this.window) return
+
     this.window.show()
     this.window.setAlwaysOnTop(true)
     this.window.focus()
@@ -248,10 +259,12 @@ setTimeout(function() { var el = document.getElementById('newlink'); el.click();
   }
 
   releaseWindowLock = (): void => {
-    this.window.removeAllListeners('close')
+    this.window?.removeAllListeners('close')
   }
 
   private updatePosition = (): void => {
+    if (!this.window) return
+
     this.config.set('posX', this.window.getBounds().x)
     this.config.set('posY', this.window.getBounds().y)
     this.config.set('width', this.window.getBounds().width)

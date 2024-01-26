@@ -1,5 +1,4 @@
 import { Component, createSignal, onMount } from 'solid-js'
-import '../styles.css'
 import { SettingsProperties, SettingsValue } from '../../../common'
 import { toast, Toaster } from 'solid-toast'
 
@@ -142,24 +141,6 @@ const Settings: Component = () => {
           </label>
           <label>
             <input
-              onChange={(e) => updateSettings('hideAvatars', e.currentTarget.checked)}
-              checked={settings()?.hideAvatars}
-              role={'switch'}
-              type={'checkbox'}
-            />
-            Hide avatar
-          </label>
-          <label>
-            <input
-              onChange={(e) => updateSettings('hidePreviews', e.currentTarget.checked)}
-              checked={settings()?.hidePreviews}
-              role={'switch'}
-              type={'checkbox'}
-            />
-            Hide preview
-          </label>
-          <label>
-            <input
               onChange={(e) => updateSettings('autoHideMenuBar', e.currentTarget.checked)}
               checked={settings()?.autoHideMenuBar}
               role={'switch'}
@@ -182,14 +163,6 @@ const Settings: Component = () => {
           onChange={(e) => updateSettings('fontSize', e.target.value)}
           value={settings()?.fontSize}
           id={'fontSize'}
-          min={1}
-          type={'number'}
-        />
-        <label for={'thumbSize'}>Thumb size</label>
-        <input
-          onChange={(e) => updateSettings('thumbSize', e.target.value)}
-          value={settings()?.thumbSize}
-          id={'thumbSize'}
           min={1}
           type={'number'}
         />
