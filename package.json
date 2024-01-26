@@ -1,10 +1,44 @@
 {
   "name": "whatstron",
   "version": "1.0.0",
-  "description": "An Electron application with Solid and TypeScript",
+  "description": "An Unofficial WhatsApp Web client for linux",
   "main": "./out/main/index.js",
-  "author": "example.com",
-  "homepage": "https://electron-vite.org",
+  "author": "murilopereira.dev",
+  "homepage": "https://github.com/murilopereirame/Whatstron",
+  "build": {
+    "asar": true,
+    "files": [
+      "./out/**/*"
+    ],
+    "appId": "dev.murilopereira.whatstron",
+    "copyright": "Copyright © 2024 ${author}",
+    "productName": "Whatstron",
+    "win": {
+      "target": "portable",
+      "icon": "resources/icon.ico",
+      "artifactName": "${productName}.${ext}"
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "category": "InstantMessaging",
+      "icon": "build/icon.icns",
+      "artifactName": "${productName}.${ext}",
+      "maintainer": "murilopereira.dev",
+      "desktop": {
+        "Name": "Whatstron",
+        "Terminal": "false"
+      }
+    },
+    "mac": {
+      "target": "dmg",
+      "category": "public.app-category.social-networking",
+      "icon": "resources/icon.png",
+      "artifactName": "${productName}.${ext}"
+    }
+  },
   "scripts": {
     "format": "prettier --write .",
     "lint": "eslint . --ext .js,.jsx,.cjs,.mjs,.ts,.tsx,.cts,.mts --fix",
