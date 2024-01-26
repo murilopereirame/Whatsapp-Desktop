@@ -20,8 +20,12 @@
     },
     "linux": {
       "target": [
-        "AppImage",
-        "deb"
+        {
+          "target": "AppImage"
+        },
+        {
+          "target": "deb"
+        }
       ],
       "category": "InstantMessaging",
       "icon": "build/icon.icns",

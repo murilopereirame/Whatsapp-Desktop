@@ -1,0 +1,129 @@
+name: 💬 Whatstron CI/CD
+
+on:
+  push:
+    tags:
+      - '*'
+
+env:
+  GH_TOKEN: ${{secrets.GITHUB_TOKEN}}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    name: Build ⚙
+    steps:
+      - name: 🚚 Get latest code
+        uses: actions/checkout@v3
+
+      - name: 🛠 Install Yarn
+        run: npm install -g yarn
+
+      - name: 🧰 Install Dependencies
+        run: yarn install
+
+      - name: 🔗 Build Web App
+        run: yarn build
+
+      - name: 📁 Archive Production Artifact
+        uses: actions/upload-artifact@master
+        with:
+          name: build
+          path: out
+
+  pack-windows:
+    runs-on: windows-latest
+    permissions:
+      contents: write
+    needs: build
+    name: Pack Windows 📦
+    steps:
+      - name: 🚚 Get latest code
+        uses: actions/checkout@v3
+
+      - name: 📂 Download Builded App
+        uses: actions/download-artifact@master
+        with:
+          name: build
+          path: out
+
+      - name: 🛠 Install Yarn
+        run: npm install -g yarn
+
+      - name: 🧰 Install Dependencies
+        run: yarn install
+
+      - name: 🪟 Build Windows Artifact
+        run: "yarn build:win"
+
+      - name: 💾 Publish Artifact
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files:
+            "dist/Whatstron.exe"
+
+  pack-linux:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    needs: build
+    name: Pack Ubuntu 📦
+    steps:
+      - name: 🚚 Get latest code
+        uses: actions/checkout@v3
+
+      - name: 📂 Download Builded App
+        uses: actions/download-artifact@master
+        with:
+          name: build
+          path: out
+
+      - name: 🛠 Install Yarn
+        run: npm install -g yarn
+
+      - name: 🧰 Install Dependencies
+        run: yarn install
+
+      - name: 🐧 Build Linux Artifact
+        run: "yarn build:linux"
+
+      - name: 💾 Publish Artifact
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: |
+            dist/Whatstron.AppImage
+            dist/Whatstron.deb
+
+  pack-mac:
+    runs-on: macos-latest
+    permissions:
+      contents: write
+    needs: build
+    name: Pack macOS 📦
+    steps:
+      - name: 🚚 Get latest code
+        uses: actions/checkout@v3
+
+      - name: 📂 Download Builded App
+        uses: actions/download-artifact@master
+        with:
+          name: build
+          path: out
+
+      - name: 🛠 Install Yarn
+        run: npm install -g yarn
+
+      - name: 🧰 Install Dependencies
+        run: yarn install
+
+      - name: 🍎 Build macOS Artifact
+        run: "yarn build:mac"
+
+      - name: 💾 Publish Artifact
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files:
+            "dist/Whatstron.dmg"
