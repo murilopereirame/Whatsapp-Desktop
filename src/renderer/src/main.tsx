@@ -11,7 +11,15 @@ render(
     if (path === 'settings') return <Settings />
     else if (path === 'about') return <About />
 
-    return <></>
+    return (
+      <>
+        <main class="container">
+          <div class={'container'} style={{ 'text-align': 'center' }}>
+            <h2>Loading...</h2>
+          </div>
+        </main>
+      </>
+    )
   },
   document.getElementById('root') as HTMLElement
 )

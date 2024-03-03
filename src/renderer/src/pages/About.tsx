@@ -17,7 +17,7 @@ const About: Component = () => {
         </a>
         <br />
         <br />
-        <span class={'bold'}>Version:</span> 1.0.0
+        <span class={'bold'}>Version:</span> 1.0.1
         <br />
         <span class={'bold'}>Email:</span> hello@murilopereira.dev
         <br />

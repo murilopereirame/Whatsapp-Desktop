@@ -247,7 +247,7 @@ export class Menu {
     if (process.env.ELECTRON_RENDERER_URL) {
       aboutWindow.loadURL(`${process.env.ELECTRON_RENDERER_URL}?path=about`)
     } else {
-      aboutWindow.loadURL(`${path.join(__dirname, '../dist/html/index.html')}?path=about`)
+      aboutWindow.loadURL(`file://${path.join(__dirname, '../renderer/index.html')}?path=about`)
     }
 
     aboutWindow.webContents.setWindowOpenHandler(({ url }) => {

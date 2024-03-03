@@ -25,7 +25,7 @@ export const openSettings = (): void => {
   if (process.env.ELECTRON_RENDERER_URL) {
     settingsWindow.loadURL(`${process.env.ELECTRON_RENDERER_URL}/path=settings`)
   } else {
-    settingsWindow.loadURL(`${path.join(__dirname, '../dist/html/index.html')}?path=settings`)
+    settingsWindow.loadURL(`file://${path.join(__dirname, '../renderer/index.html')}?path=settings`)
   }
 
   ipcMain.on('settings:update', (_, settings: SettingsProperties) => {
